@@ -2,9 +2,12 @@ name: Terraform CI
 
 on:
   pull_request:
-    paths:
-      - '**.tf'
-      - '.terraform.lock.hcl'
+    paths: ['**.tf', '.terraform.lock.hcl']
+  push:
+    branches: ['main']
+    paths: ['**.tf', '.terraform.lock.hcl']
+
+
 
 permissions:
   contents: read
@@ -56,7 +59,7 @@ jobs:
           chmod +x /usr/local/bin/tfsec
 
       - name: tfsec (security scan)
-        run: tfsec --soft-fail
+        run: tfsec --minimum-severity HIGH
 
       - name: Terraform plan
         run: terraform plan -no-color -out=tfplan
