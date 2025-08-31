@@ -2,10 +2,18 @@ name: Terraform CI
 
 on:
   pull_request:
-    paths: ['**.tf', '.terraform.lock.hcl']
+    paths:
+      - '**.tf'
+      - '.terraform.lock.hcl'
+      - '.github/workflows/terraform-ci.yaml'
   push:
-    branches: ['main']
-    paths: ['**.tf', '.terraform.lock.hcl']
+    branches:
+      - main
+    paths:
+      - '**.tf'
+      - '.terraform.lock.hcl'
+      - '.github/workflows/terraform-ci.yaml'
+
 
 
 
