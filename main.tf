@@ -181,11 +181,16 @@ resource "aws_instance" "dev" {
   }
 
   # Start nginx and serve a page
-  user_data = <<-EOF
-    #!/bin/bash
-    set -euo pipefail
-    if command -v dnf >/dev/null 2>&1; then
-      dnf -y update
-      dnf -y install nginx
-    else
-      yum -y update
+  user_data = <<EOF
+#!/bin/bash
+set -euo pipefail
+if command -v dnf >/dev/null 2>&1; then
+  dnf -y update
+  dnf -y install nginx
+else
+  yum -y update || true
+  yum -y install nginx
+fi
+systemctl enable --now nginx
+echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
+EOF
