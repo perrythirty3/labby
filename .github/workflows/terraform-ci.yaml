@@ -68,7 +68,7 @@ jobs:
         run: tfsec --minimum-severity HIGH
 
       - name: Terraform plan
-        run: terraform plan -no-color -out=tfplan
+        run: terraform plan -no-color -outtfplan
 
       - name: Show plan to text
         run: terraform show -no-color tfplan > plan.txt
