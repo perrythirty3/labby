@@ -214,7 +214,7 @@ resource "aws_instance" "dev" {
   # ...your existing args...
 
   metadata_options {
-    http_tokens = "required"   # <- IMDSv2 only
+    http_tokens = "required" # <- IMDSv2 only
     # http_endpoint = "enabled"  # (default) optional to be explicit
   }
 }
@@ -270,9 +270,9 @@ resource "aws_security_group" "web" {
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
     # tfsec:ignore:aws-ec2-no-public-egress-sgr
     # justified: allow outbound in lab; will restrict via NAT later
     cidr_blocks = ["0.0.0.0/0"]
@@ -280,21 +280,21 @@ resource "aws_security_group" "web" {
 }
 
 resource "aws_security_group" "ssh" {
-  name        = "labby-ssh-sg"
-  vpc_id      = aws_vpc.labby_tf.id
+  name   = "labby-ssh-sg"
+  vpc_id = aws_vpc.labby_tf.id
 
   ingress {
     description = "SSH from your IP only"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.my_ip]  # e.g., "203.0.113.42/32"
+    cidr_blocks = [var.my_ip] # e.g., "203.0.113.42/32"
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
     # tfsec:ignore:aws-ec2-no-public-egress-sgr
     # justified: allow outbound for updates in lab
     cidr_blocks = ["0.0.0.0/0"]
