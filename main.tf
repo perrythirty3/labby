@@ -77,8 +77,7 @@ resource "aws_subnet" "public_a" {
   cidr_block        = "10.10.1.0/24"
   availability_zone = "${var.region}a"
 
-  #tfsec:ignore:aws-ec2-no-public-ip-subnet
-  # justified: public subnet for demo; will add private subnet + NAT later
+  #tfsec:ignore:aws-ec2-no-public-ip-subnet - this is intentionally a public subnet for the demo
   map_public_ip_on_launch = true
 
   tags = { Name = "labby-tf-public-a" }
@@ -125,7 +124,7 @@ resource "aws_security_group" "ssh" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = { Name = "labby-tf-ssh" }
+  tags = { Name = "labby-tf-ssh" } #tfsec:ignore:aws-ec2-no-public-egress-sgr - lab allows outbound for package repos
 }
 
 # Public HTTP (demo)
@@ -141,7 +140,7 @@ resource "aws_security_group" "web" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] #tfsec:ignore:aws-ec2-no-public-ingress-sgr - public demo page
   }
 
   #tfsec:ignore:aws-ec2-no-public-egress-sgr
@@ -150,7 +149,7 @@ resource "aws_security_group" "web" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] #tfsec:ignore:aws-ec2-no-public-egress-sgr - lab allows outbound for package repos
   }
 
   tags = { Name = "labby-tf-web" }
