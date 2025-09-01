@@ -43,7 +43,7 @@ jobs:
           terraform_version: 1.9.5
 
       - name: Terraform fmt
-        run: terraform fmt -check
+        run: terraform fmt -check -diff
 
       - name: Terraform init
         run: terraform init -input=false
