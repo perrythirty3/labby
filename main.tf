@@ -190,3 +190,16 @@ systemctl enable --now nginx
 echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
 EOF
 }
+
+# ---------------- TERRAFORM ----------------
+
+terraform {
+  backend "s3" {
+    bucket         = "p-terraform-state-prod-123456789012"  # <-- your bucket
+    key            = "terraform.tfstate"                     # object name
+    region         = "us-east-1"                             # your region
+    dynamodb_table = "terraform-locks"                       # lock table
+    encrypt        = true
+    workspace_key_prefix = "env"                             # makes path env/<workspace>/terraform.tfstate
+  }
+}
