@@ -2,17 +2,12 @@ name: Terraform CI
 
 on:
   pull_request:
-    paths:
-      - '**.tf'
-      - '.terraform.lock.hcl'
-      - '.github/workflows/terraform-ci.yaml'
+    paths: ['**.tf', '.terraform.lock.hcl']
   push:
-    branches:
-      - main
-    paths:
-      - '**.tf'
-      - '.terraform.lock.hcl'
-      - '.github/workflows/terraform-ci.yaml'
+    branches: ['main']
+    paths: ['**.tf', '.terraform.lock.hcl']
+
+
 
 permissions:
   contents: read
@@ -85,3 +80,4 @@ jobs:
         with:
           header: terraform-plan
           path: plan.txt
+
