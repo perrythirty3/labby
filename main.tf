@@ -8,6 +8,11 @@ terraform {
     }
   }
 
+
+locals {
+  deploy_ping = "noop-2025-09-01"
+}
+
   # --- OPTIONAL: enable this backend after you create a real bucket ---
   # backend "s3" {
   #   bucket       = "labby-tf-state-<REPLACE-WITH-UNIQUE-NAME>"  # e.g., labby-tf-state-pnguy-123
