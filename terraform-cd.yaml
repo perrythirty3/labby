@@ -1,0 +1,89 @@
+name: Terraform CD
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "*.tf"
+      - "**/*.tf"
+      - ".github/workflows/terraform-cd.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_WORKING_DIR: .
+  TF_IN_AUTOMATION: true
+
+concurrency:
+  group: tf-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: terraform apply (prod)
+    runs-on: ubuntu-latest
+    environment: prod   # <-- must exist in Repo Settings → Environments
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}  # set this repo/env var to us-east-2
+
+      - name: Cache Terraform
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            ./.terraform
+          key: tf-${{ runner.os }}-${{ hashFiles('**/*.tf') }}
+          restore-keys: |
+            tf-${{ runner.os }}-
+
+      - name: Init backend
+        run: |
+          mkdir -p ~/.terraform.d/plugin-cache
+          terraform init -input=false
+
+      - name: Select/create workspace
+        run: terraform workspace select prod || terraform workspace new prod
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Plan (for logs)
+        run: terraform plan -input=false -out=plan.out
+
+      - name: Apply
+        run: terraform apply -input=false -auto-approve plan.out
+
+      - name: Show state summary
+        if: always()
+        run: terraform show -no-color
+
+      - name: Upload artifacts (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tf-outputs
+          path: |
+            ./.terraform
+            ./terraform.tfstate*
+            ./plan.out
+          if-no-files-found: ignore
