@@ -115,17 +115,12 @@ resource "aws_security_group" "ssh" {
     cidr_blocks = [var.my_ip]
   }
 
-  #tfsec:ignore:aws-ec2-no-public-egress-sgr
-  # reason: allow outbound package installs in lab; will restrict later
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # No outbound from the SSH SG; web SG handles egress.
+  egress = []
 
-  tags = { Name = "labby-tf-ssh" } #tfsec:ignore:aws-ec2-no-public-egress-sgr - lab allows outbound for package repos
+  tags = { Name = "labby-tf-ssh" }
 }
+
 
 # Public HTTP (demo)
 resource "aws_security_group" "web" {
