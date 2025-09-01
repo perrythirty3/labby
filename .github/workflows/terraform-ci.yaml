@@ -68,7 +68,7 @@ jobs:
         run: tfsec --minimum-severity HIGH
 
       - name: Terraform plan
-        run: terraform plan -no-color -input=false -out=tfplan
+        run: terraform plan -no-color -input=false -out=tfplan -var "my_ip=${{ vars.MY_IP }}"
 
       - name: Show plan to text
         run: terraform show -no-color tfplan > plan.txt
