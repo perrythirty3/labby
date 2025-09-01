@@ -116,12 +116,12 @@ resource "aws_security_group" "ssh" {
     cidr_blocks = [var.my_ip]
   }
 
+  #tfsec:ignore:aws-ec2-no-public-egress-sgr
+  # reason: allow outbound package installs in lab; will restrict later
   egress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-    # tfsec:ignore:aws-ec2-no-public-egress-sgr
-    # justified: allow outbound for updates in lab
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -134,27 +134,28 @@ resource "aws_security_group" "web" {
   description = "Public HTTP"
   vpc_id      = aws_vpc.labby_tf.id
 
+  #tfsec:ignore:aws-ec2-no-public-ingress-sgr
+  # reason: demo public page; will move behind an ALB later
   ingress {
     description = "HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    # tfsec:ignore:aws-ec2-no-public-ingress-sgr
-    # justified: public demo web page; will move behind ALB later
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  #tfsec:ignore:aws-ec2-no-public-egress-sgr
+  # reason: allow outbound in lab; will restrict later
   egress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-    # tfsec:ignore:aws-ec2-no-public-egress-sgr
-    # justified: allow outbound in lab; will restrict via NAT later
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = { Name = "labby-tf-web" }
 }
+
 
 # ---------------- EC2 ----------------
 resource "aws_instance" "dev" {
