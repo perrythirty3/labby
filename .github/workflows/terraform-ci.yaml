@@ -2,12 +2,25 @@ name: Terraform CI
 
 on:
   pull_request:
-    paths: ['**.tf', '.terraform.lock.hcl']
+<<<<<<<<< Temporary merge branch 1
+
+=========
+>>>>>>>>> Temporary merge branch 2
+    paths:
+      - '**.tf'
+      - '.terraform.lock.hcl'
+      - '.github/workflows/terraform-ci.yaml'
   push:
-    branches: ['main']
-    paths: ['**.tf', '.terraform.lock.hcl']
+    branches:
+      - main
+    paths:
+      - '**.tf'
+      - '.terraform.lock.hcl'
+      - '.github/workflows/terraform-ci.yaml'
+<<<<<<<<< Temporary merge branch 1
 
-
+=========
+>>>>>>>>> Temporary merge branch 2
 
 permissions:
   contents: read
@@ -27,7 +40,7 @@ jobs:
 
       - name: Configure AWS creds (lab keys)
         uses: aws-actions/configure-aws-credentials@v4
-        with:                               # <-- this was 'uses:' before
+        with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -63,7 +76,7 @@ jobs:
         run: tfsec --minimum-severity HIGH
 
       - name: Terraform plan
-        run: terraform plan -no-color -out=tfplan
+        run: terraform plan -no-color -outtfplan
 
       - name: Show plan to text
         run: terraform show -no-color tfplan > plan.txt
@@ -79,5 +92,8 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: terraform-plan
+<<<<<<<<< Temporary merge branch 1
           path: plan.txt
-
+=========
+          path: plan.txt
+>>>>>>>>> Temporary merge branch 2
