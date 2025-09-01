@@ -2,7 +2,10 @@ name: Terraform CI
 
 on:
   pull_request:
+<<<<<<<<< Temporary merge branch 1
 
+=========
+>>>>>>>>> Temporary merge branch 2
     paths:
       - '**.tf'
       - '.terraform.lock.hcl'
@@ -14,7 +17,10 @@ on:
       - '**.tf'
       - '.terraform.lock.hcl'
       - '.github/workflows/terraform-ci.yaml'
+<<<<<<<<< Temporary merge branch 1
 
+=========
+>>>>>>>>> Temporary merge branch 2
 
 permissions:
   contents: read
@@ -22,6 +28,7 @@ permissions:
 
 jobs:
   terraform:
+    name: terraform
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -69,7 +76,7 @@ jobs:
         run: tfsec --minimum-severity HIGH
 
       - name: Terraform plan
-        run: terraform plan -no-color -out=tfplan
+        run: terraform plan -no-color -outtfplan
 
       - name: Show plan to text
         run: terraform show -no-color tfplan > plan.txt
@@ -85,4 +92,8 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: terraform-plan
+<<<<<<<<< Temporary merge branch 1
           path: plan.txt
+=========
+          path: plan.txt
+>>>>>>>>> Temporary merge branch 2
