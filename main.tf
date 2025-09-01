@@ -195,11 +195,11 @@ EOF
 
 terraform {
   backend "s3" {
-    bucket         = "p-terraform-state-prod-123456789012"  # <-- your bucket
-    key            = "terraform.tfstate"                     # object name
-    region         = "us-east-1"                             # your region
-    dynamodb_table = "terraform-locks"                       # lock table
-    encrypt        = true
-    workspace_key_prefix = "env"                             # makes path env/<workspace>/terraform.tfstate
+    bucket               = "p-terraform-state-prod-681833711197"
+    key                  = "terraform.tfstate"
+    region               = "us-east-2"
+    dynamodb_table       = "terraform-locks"
+    encrypt              = true
+    workspace_key_prefix = "env"
   }
 }
