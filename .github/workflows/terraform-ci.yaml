@@ -2,10 +2,6 @@ name: Terraform CI
 
 on:
   pull_request:
-<<<<<<<<< Temporary merge branch 1
-
-=========
->>>>>>>>> Temporary merge branch 2
     paths:
       - '**.tf'
       - '.terraform.lock.hcl'
@@ -17,10 +13,6 @@ on:
       - '**.tf'
       - '.terraform.lock.hcl'
       - '.github/workflows/terraform-ci.yaml'
-<<<<<<<<< Temporary merge branch 1
-
-=========
->>>>>>>>> Temporary merge branch 2
 
 permissions:
   contents: read
@@ -92,8 +84,4 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: terraform-plan
-<<<<<<<<< Temporary merge branch 1
           path: plan.txt
-=========
-          path: plan.txt
->>>>>>>>> Temporary merge branch 2
