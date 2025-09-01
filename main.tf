@@ -77,8 +77,7 @@ resource "aws_subnet" "public_a" {
   cidr_block        = "10.10.1.0/24"
   availability_zone = "${var.region}a"
 
-  # tfsec:ignore:aws-ec2-no-public-ip-subnet
-  # justified: public subnet for demo; will add private subnet + NAT later
+  #tfsec:ignore:aws-ec2-no-public-ip-subnet - this is intentionally a public subnet for the demo
   map_public_ip_on_launch = true
 
   tags = { Name = "labby-tf-public-a" }
@@ -116,17 +115,12 @@ resource "aws_security_group" "ssh" {
     cidr_blocks = [var.my_ip]
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    # tfsec:ignore:aws-ec2-no-public-egress-sgr
-    # justified: allow outbound for updates in lab
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # No outbound from the SSH SG; web SG handles egress.
+  egress = []
 
   tags = { Name = "labby-tf-ssh" }
 }
+
 
 # Public HTTP (demo)
 resource "aws_security_group" "web" {
@@ -134,27 +128,28 @@ resource "aws_security_group" "web" {
   description = "Public HTTP"
   vpc_id      = aws_vpc.labby_tf.id
 
+  #tfsec:ignore:aws-ec2-no-public-ingress-sgr
+  # reason: demo public page; will move behind an ALB later
   ingress {
     description = "HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    # tfsec:ignore:aws-ec2-no-public-ingress-sgr
-    # justified: public demo web page; will move behind ALB later
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] #tfsec:ignore:aws-ec2-no-public-ingress-sgr - public demo page
   }
 
+  #tfsec:ignore:aws-ec2-no-public-egress-sgr
+  # reason: allow outbound in lab; will restrict later
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    # tfsec:ignore:aws-ec2-no-public-egress-sgr
-    # justified: allow outbound in lab; will restrict via NAT later
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"] #tfsec:ignore:aws-ec2-no-public-egress-sgr - lab allows outbound for package repos
   }
 
   tags = { Name = "labby-tf-web" }
 }
+
 
 # ---------------- EC2 ----------------
 resource "aws_instance" "dev" {
@@ -181,28 +176,17 @@ resource "aws_instance" "dev" {
   }
 
   # Start nginx and serve a page
-  user_data = <<-EOF
-    #!/bin/bash
-    set -euo pipefail
-    if command -v dnf >/dev/null 2>&1; then
-      dnf -y update
-      dnf -y install nginx
-    else
-      yum -y update || true
-      yum -y install nginx
-    fi
-    systemctl enable --now nginx
-    echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
-  EOF
-
-  tags = { Name = "labby-tf-ec2" }
-}
-
-# ---------------- Outputs ----------------
-output "public_ip" {
-  value = aws_instance.dev.public_ip
-}
-
-output "ssh_command" {
-  value = "ssh -i <PATH-TO-PEM> ec2-user@${aws_instance.dev.public_ip}"
+  user_data = <<EOF
+#!/bin/bash
+set -euo pipefail
+if command -v dnf >/dev/null 2>&1; then
+  dnf -y update
+  dnf -y install nginx
+else
+  yum -y update || true
+  yum -y install nginx
+fi
+systemctl enable --now nginx
+echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
+EOF
 }

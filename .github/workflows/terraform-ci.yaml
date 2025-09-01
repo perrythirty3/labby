@@ -1,18 +1,16 @@
 name: Terraform CI
 
 on:
-  pull_request:
-    paths:
-      - '**.tf'
-      - '.terraform.lock.hcl'
-      - '.github/workflows/terraform-ci.yaml'
+  workflow_dispatch:
+  pull_request:          # no paths — always run on PRs
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - '**.tf'
+      - '**/*.tf'
       - '.terraform.lock.hcl'
       - '.github/workflows/terraform-ci.yaml'
+
+
 
 permissions:
   contents: read
@@ -43,7 +41,7 @@ jobs:
           terraform_version: 1.9.5
 
       - name: Terraform fmt
-        run: terraform fmt -check
+        run: terraform fmt -check -diff
 
       - name: Terraform init
         run: terraform init -input=false
@@ -68,7 +66,7 @@ jobs:
         run: tfsec --minimum-severity HIGH
 
       - name: Terraform plan
-        run: terraform plan -no-color -outtfplan
+        run: terraform plan -no-color -input=false -out=tfplan -var "my_ip=${{ vars.MY_IP }}"
 
       - name: Show plan to text
         run: terraform show -no-color tfplan > plan.txt
