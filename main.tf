@@ -117,9 +117,9 @@ resource "aws_security_group" "ssh" {
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
     # tfsec:ignore:aws-ec2-no-public-egress-sgr
     # justified: allow outbound for updates in lab
     cidr_blocks = ["0.0.0.0/0"]
@@ -145,9 +145,9 @@ resource "aws_security_group" "web" {
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
     # tfsec:ignore:aws-ec2-no-public-egress-sgr
     # justified: allow outbound in lab; will restrict via NAT later
     cidr_blocks = ["0.0.0.0/0"]
