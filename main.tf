@@ -208,3 +208,13 @@ resource "aws_instance" "dev" {
 
   tags = { Name = "labby-tf-ec2" }
 }
+
+
+resource "aws_instance" "dev" {
+  # ...your existing args...
+
+  metadata_options {
+    http_tokens = "required"   # <- IMDSv2 only
+    # http_endpoint = "enabled"  # (default) optional to be explicit
+  }
+}
