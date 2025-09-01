@@ -18,6 +18,10 @@ terraform {
   # }
 }
 
+
+# deploy_ping = "noop-2025-09-01"
+
+
 provider "aws" {
   region = var.region
 }
@@ -189,4 +193,21 @@ fi
 systemctl enable --now nginx
 echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
 EOF
+}
+
+# chore/noop-deploy-ping
+
+
+# ---------------- TERRAFORM ----------------
+
+terraform {
+  backend "s3" {
+    bucket               = "p-terraform-state-prod-681833711197"
+    key                  = "terraform.tfstate"
+    region               = "us-east-2"
+    dynamodb_table       = "terraform-locks"
+    encrypt              = true
+    workspace_key_prefix = "env"
+  }
+
 }
