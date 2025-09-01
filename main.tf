@@ -188,21 +188,4 @@ resource "aws_instance" "dev" {
       dnf -y update
       dnf -y install nginx
     else
-      yum -y update || true
-      yum -y install nginx
-    fi
-    systemctl enable --now nginx
-    echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
-  EOF
-
-  tags = { Name = "labby-tf-ec2" }
-}
-
-# ---------------- Outputs ----------------
-output "public_ip" {
-  value = aws_instance.dev.public_ip
-}
-
-output "ssh_command" {
-  value = "ssh -i <PATH-TO-PEM> ec2-user@${aws_instance.dev.public_ip}"
-}
+      yum -y update
