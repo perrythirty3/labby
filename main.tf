@@ -77,7 +77,7 @@ resource "aws_subnet" "public_a" {
   cidr_block        = "10.10.1.0/24"
   availability_zone = "${var.region}a"
 
-  # tfsec:ignore:aws-ec2-no-public-ip-subnet
+  #tfsec:ignore:aws-ec2-no-public-ip-subnet
   # justified: public subnet for demo; will add private subnet + NAT later
   map_public_ip_on_launch = true
 
