@@ -25,7 +25,8 @@ jobs:
   apply:
     name: terraform apply (prod)
     runs-on: ubuntu-latest
-    environment: prod   # <-- must exist in Repo Settings → Environments
+    environment:
+      name: prod   # must exist in GitHub → Settings → Environments
     defaults:
       run:
         shell: bash
@@ -44,7 +45,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ vars.AWS_REGION }}  # set this repo/env var to us-east-2
+          aws-region: us-east-2
 
       - name: Cache Terraform
         uses: actions/cache@v4
@@ -62,7 +63,8 @@ jobs:
           terraform init -input=false
 
       - name: Select/create workspace
-        run: terraform workspace select prod || terraform workspace new prod
+        run: |
+          terraform workspace select prod || terraform workspace new prod
 
       - name: Validate
         run: terraform validate
