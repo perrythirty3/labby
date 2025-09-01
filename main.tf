@@ -18,9 +18,9 @@ terraform {
   # }
 }
 
-locals {
-  deploy_ping = "noop-2025-09-01"
-}
+
+# deploy_ping = "noop-2025-09-01"
+
 
 provider "aws" {
   region = var.region
