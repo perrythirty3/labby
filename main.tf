@@ -208,3 +208,96 @@ resource "aws_instance" "dev" {
 
   tags = { Name = "labby-tf-ec2" }
 }
+
+
+resource "aws_instance" "dev" {
+  # ...your existing args...
+
+  metadata_options {
+    http_tokens = "required"   # <- IMDSv2 only
+    # http_endpoint = "enabled"  # (default) optional to be explicit
+  }
+}
+
+resource "aws_instance" "dev" {
+  ami           = data.aws_ami.al2023.id
+  instance_type = "t3.micro"
+  subnet_id     = aws_subnet.public_a.id
+  vpc_security_group_ids = [
+    aws_security_group.ssh.id,
+    aws_security_group.web.id
+  ]
+  key_name = var.key_name
+
+  # Require IMDSv2
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  # Encrypt root volume (uses account default KMS)
+  root_block_device {
+    encrypted = true
+  }
+
+  tags = { Name = "labby-dev" }
+}
+
+resource "aws_subnet" "public_a" {
+  vpc_id            = aws_vpc.labby_tf.id
+  cidr_block        = "10.10.1.0/24"
+  availability_zone = "${var.region}a"
+
+  # tfsec:ignore:aws-ec2-no-public-ip-subnet
+  # justified: public subnet for demo; will add private subnet + NAT later
+  map_public_ip_on_launch = true
+
+  tags = { Name = "labby-tf-public-a" }
+}
+
+resource "aws_security_group" "web" {
+  name        = "labby-web-sg"
+  description = "HTTP access to web server"
+  vpc_id      = aws_vpc.labby_tf.id
+
+  ingress {
+    description = "Public HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    # tfsec:ignore:aws-ec2-no-public-ingress-sgr
+    # justified: public demo web page; will move behind ALB later
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    # tfsec:ignore:aws-ec2-no-public-egress-sgr
+    # justified: allow outbound in lab; will restrict via NAT later
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "ssh" {
+  name        = "labby-ssh-sg"
+  vpc_id      = aws_vpc.labby_tf.id
+
+  ingress {
+    description = "SSH from your IP only"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip]  # e.g., "203.0.113.42/32"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    # tfsec:ignore:aws-ec2-no-public-egress-sgr
+    # justified: allow outbound for updates in lab
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
