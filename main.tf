@@ -194,3 +194,4 @@ fi
 systemctl enable --now nginx
 echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
 EOF
+}
