@@ -8,11 +8,6 @@ terraform {
     }
   }
 
-
-locals {
-  deploy_ping = "noop-2025-09-01"
-}
-
   # --- OPTIONAL: enable this backend after you create a real bucket ---
   # backend "s3" {
   #   bucket       = "labby-tf-state-<REPLACE-WITH-UNIQUE-NAME>"  # e.g., labby-tf-state-pnguy-123
@@ -21,6 +16,10 @@ locals {
   #   encrypt      = true
   #   use_lockfile = true   # replaces old dynamodb_table locking
   # }
+}
+
+locals {
+  deploy_ping = "noop-2025-09-01"
 }
 
 provider "aws" {
@@ -194,7 +193,6 @@ fi
 systemctl enable --now nginx
 echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
 EOF
-chore/noop-deploy-ping
 }
 
 # chore/noop-deploy-ping
@@ -211,6 +209,5 @@ terraform {
     encrypt              = true
     workspace_key_prefix = "env"
   }
-=======
-main
+
 }
