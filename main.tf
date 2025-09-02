@@ -8,14 +8,6 @@ terraform {
     }
   }
 
-  # --- OPTIONAL: enable this backend after you create a real bucket ---
-  # backend "s3" {
-  #   bucket       = "labby-tf-state-<REPLACE-WITH-UNIQUE-NAME>"  # e.g., labby-tf-state-pnguy-123
-  #   key          = "dev/terraform.tfstate"
-  #   region       = "us-east-2"
-  #   encrypt      = true
-  #   use_lockfile = true   # replaces old dynamodb_table locking
-  # }
 }
 
 
