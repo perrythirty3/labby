@@ -251,3 +251,71 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+# --- Simple public S3 website for a quick test ---
+
+resource "random_id" "app" {
+  byte_length = 3
+}
+
+resource "aws_s3_bucket" "app_site" {
+  bucket        = "labby-app-site-${random_id.app.hex}"
+  force_destroy = true
+  tags          = { Name = "labby-app-site" }
+}
+
+resource "aws_s3_bucket_ownership_controls" "app_site" {
+  bucket = aws_s3_bucket.app_site.id
+  rule { object_ownership = "BucketOwnerPreferred" }
+}
+
+resource "aws_s3_bucket_public_access_block" "app_site" {
+  bucket                  = aws_s3_bucket.app_site.id
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_website_configuration" "app_site" {
+  bucket = aws_s3_bucket.app_site.id
+  index_document { suffix = "index.html" }
+  error_document { key = "index.html" }
+}
+
+data "aws_iam_policy_document" "app_site_public" {
+  statement {
+    sid       = "PublicReadGetObject"
+    effect    = "Allow"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.app_site.arn}/*"]
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "app_site_public" {
+  bucket = aws_s3_bucket.app_site.id
+  policy = data.aws_iam_policy_document.app_site_public.json
+}
+
+# tiny index so you see something
+resource "aws_s3_object" "index" {
+  bucket       = aws_s3_bucket.app_site.id
+  key          = "index.html"
+  content_type = "text/html"
+  content      = <<HTML
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Labby</title></head>
+<body style="font-family:system-ui;margin:2rem">
+  <h1>✅ Hello from Labby</h1>
+  <p>${formatdate("YYYY-MM-DD hh:mm:ss ZZZ", timestamp())}</p>
+</body></html>
+HTML
+}
+
+# (optional) outputs
+output "app_site_bucket" { value = aws_s3_bucket.app_site.bucket }
+output "app_site_website_url" { value = "http://${aws_s3_bucket.app_site.bucket}.s3-website-${var.region}.amazonaws.com" }
