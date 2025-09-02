@@ -27,7 +27,7 @@ jobs:
     name: terraform apply (prod)
     runs-on: ubuntu-latest
     environment:
-      name: prod   # requires manual approval in GitHub Environments
+      name: prod  # requires approval in Environments
     defaults:
       run:
         shell: bash
@@ -37,7 +37,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # cache ONLY the plugin cache (never ./.terraform)
+      - name: Ensure TF plugin cache dir exists
+        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+
+      # cache plugins ONLY (never cache ./.terraform)
       - name: Cache Terraform plugins
         uses: actions/cache@v4
         with:
@@ -49,26 +52,23 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_wrapper: false
           terraform_version: 1.9.5
+          terraform_wrapper: false
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ vars.AWS_REGION }}  # e.g., us-east-2
+          aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Who am I? (sanity)
+      - name: Who am I?
         run: aws sts get-caller-identity
 
-      # ensure backend changes (use_lockfile) are picked up
       - name: Clean previous TF dir
         run: rm -rf .terraform
 
       - name: Init backend
-        run: |
-          mkdir -p "$TF_PLUGIN_CACHE_DIR"
-          terraform init -input=false -reconfigure -upgrade
+        run: terraform init -input=false -reconfigure -upgrade
 
       - name: Select/create workspace
         run: terraform workspace select prod || terraform workspace new prod
@@ -77,7 +77,9 @@ jobs:
         run: terraform validate -no-color
 
       - name: Plan (for logs)
-        run: terraform plan -input=false -no-color -out=plan.out
+        env:
+          MY_IP: ${{ vars.MY_IP }}   # set this repo/environment var to your /32 (e.g., 1.2.3.4/32)
+        run: terraform plan -input=false -no-color -out=plan.out -var "my_ip=${MY_IP}"
 
       - name: Apply
         run: terraform apply -input=false -auto-approve plan.out
@@ -85,6 +87,15 @@ jobs:
       - name: Show state summary
         if: always()
         run: terraform show -no-color
-      - run: terraform plan -input=false -out=plan.out -var "my_ip=${{ vars.MY_IP }}"
 
-      # (optional) tiny
+      - name: Confirm remote state path (snippet)
+        if: always()
+        run: terraform state pull | head -c 200 || true
+
+      - name: Upload plan (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tf-plan
+          path: plan.out
+          if-no-files-found: ignore
