@@ -253,56 +253,46 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 }
 
 
-# ---------- Demo website bucket (public read; demo only) ----------
-resource "aws_s3_bucket" "app_site" {
-  bucket        = "labby-demo-site-681833711197" # unique per account
-  force_destroy = true
-}
-
-resource "aws_s3_bucket_versioning" "app_site" {
-  bucket = aws_s3_bucket.app_site.id
-  versioning_configuration { status = "Enabled" }
-}
-
-# For static web hosting (website endpoint)
+# S3 website hosting (you likely already have the bucket created above)
 resource "aws_s3_bucket_website_configuration" "app_site" {
   bucket = aws_s3_bucket.app_site.id
 
-  index_document { suffix = "index.html" }
-  error_document { key    = "index.html" }
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "index.html"
+  }
 }
 
-# Public access *for this demo* (ok for a short-lived test)
+# Public access for this short-lived demo (turn off all the "block public access" bits)
 resource "aws_s3_bucket_public_access_block" "app_site" {
   bucket = aws_s3_bucket.app_site.id
 
-  block_public_acls   = false
-  block_public_policy = false
-  ignore_public_acls  = false
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
   restrict_public_buckets = false
 }
 
-# Allow the world to GET objects (website needs this)
+# Bucket policy: allow the world to GET objects (required for a public website)
 data "aws_iam_policy_document" "app_site_public" {
   statement {
     sid     = "PublicReadGetObject"
     effect  = "Allow"
     actions = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.app_site.arn}/*"]
-    principals {
-      type        = "AWS"
-      identifiers = ["*"]
-}
 
+    # Objects under the bucket
+    resources = ["${aws_s3_bucket.app_site.arn}/*"]
+
+    # Either of these principal forms is fine; choose one:
+    # principals { type = "*";   identifiers = ["*"] }
+    principals { type = "AWS"; identifiers = ["*"] }
   }
 }
 
 resource "aws_s3_bucket_policy" "app_site_public" {
   bucket = aws_s3_bucket.app_site.id
   policy = data.aws_iam_policy_document.app_site_public.json
-}
-
-# Handy output so you can click it
-output "app_site_website_url" {
-  value = "http://${aws_s3_bucket.app_site.bucket}.s3-website-${var.region}.amazonaws.com"
 }
