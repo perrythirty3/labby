@@ -203,6 +203,7 @@ terraform {
   }
 }
 
+
 # ========== ECS TASK EXECUTION ROLE ==========
 # lets ECS pull from ECR, write logs, etc.
 resource "aws_iam_role" "ecs_task_execution" {
