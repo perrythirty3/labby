@@ -90,3 +90,12 @@ jobs:
 
       - name: Confirm remote state path (snippet)
         if: always()
+        run: terraform state pull | head -c 200 || true
+
+      - name: Upload plan (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tf-plan
+          path: plan.out
+          if-no-files-found: ignore
