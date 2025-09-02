@@ -263,8 +263,8 @@ resource "random_id" "app" {
 # 1) The bucket
 resource "aws_s3_bucket" "app_site" {
   bucket        = "labby-app-site-${random_id.app.hex}"
-  force_destroy = true  # ok for a lab; remove for prod
-  tags = { Name = "labby-app-site" }
+  force_destroy = true # ok for a lab; remove for prod
+  tags          = { Name = "labby-app-site" }
 }
 
 # 2) Ownership controls (needed if you ever use ACLs)
@@ -289,7 +289,7 @@ resource "aws_s3_bucket_website_configuration" "app_site" {
   bucket = aws_s3_bucket.app_site.id
 
   index_document { suffix = "index.html" }
-  error_document { key    = "index.html" }
+  error_document { key = "index.html" }
 }
 
 # 5) Bucket policy that allows the world to GET objects (the website needs this)
