@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.4.0"
+  required_version = ">= 2.0.0"
 
   required_providers {
     aws = {
@@ -195,7 +195,7 @@ EOF
 terraform {
   backend "s3" {
     bucket               = "p-terraform-state-prod-681833711197"
-    key                  = "env/prod/terraform.tfstate"
+    key                  = "terraform.tfstate"
     region               = "us-east-2"
     encrypt              = true
     workspace_key_prefix = "env"
