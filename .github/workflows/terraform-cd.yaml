@@ -85,5 +85,6 @@ jobs:
       - name: Show state summary
         if: always()
         run: terraform show -no-color
+      - run: terraform plan -input=false -out=plan.out -var "my_ip=${{ vars.MY_IP }}"
 
       # (optional) tiny
