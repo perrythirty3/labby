@@ -1,0 +1,58 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # aws_instance.dev will be updated in-place
+  ~ resource "aws_instance" "dev" {
+        id                                   = "i-09bee3e1a084288e1"
+      ~ public_dns                           = "ec2-13-59-106-208.us-east-2.compute.amazonaws.com" -> (known after apply)
+      ~ public_ip                            = "13.59.106.208" -> (known after apply)
+        tags                                 = {}
+      ~ user_data                            = "6a37b846d1d34c2ba77ecb402ef752977b6b0e33" -> "2e53caaf3f49b49e8390c16adda7c95b833abe88"
+        # (37 unchanged attributes hidden)
+
+        # (8 unchanged blocks hidden)
+    }
+
+  # aws_security_group.ssh will be updated in-place
+  ~ resource "aws_security_group" "ssh" {
+        id                     = "sg-0555ebf617624a6be"
+      ~ ingress                = [
+          - {
+              - cidr_blocks      = [
+                  - "23.126.112.235/32",
+                ]
+              - description      = "SSH"
+              - from_port        = 22
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = []
+              - self             = false
+              - to_port          = 22
+            },
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/32",
+                ]
+              + description      = "SSH"
+              + from_port        = 22
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 22
+            },
+        ]
+        name                   = "labby-tf-ssh"
+        tags                   = {
+            "Name" = "labby-tf-ssh"
+        }
+        # (8 unchanged attributes hidden)
+    }
+
+Plan: 0 to add, 2 to change, 0 to destroy.
