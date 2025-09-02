@@ -99,3 +99,6 @@ jobs:
           name: tf-plan
           path: plan.out
           if-no-files-found: ignore
+
+      - name: Terraform version
+        run: terraform version
