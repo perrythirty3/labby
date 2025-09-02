@@ -89,3 +89,33 @@ jobs:
             ./terraform.tfstate*
             ./plan.out
           if-no-files-found: ignore
+
+# BEFORE (likely)
+# - name: Cache Terraform
+#   uses: actions/cache@v4
+#   with:
+#     path: |
+#       ~/.terraform.d/plugin-cache
+#       ./.terraform
+#     key: tf-${{ runner.os }}-${{ hashFiles('**/*.tf') }}
+#     restore-keys: |
+#       tf-${{ runner.os }}-
+
+# AFTER (cache plugins only)
+- name: Cache Terraform plugins
+  uses: actions/cache@v4
+  with:
+    path: ~/.terraform.d/plugin-cache
+    key: tf-plugins-${{ runner.os }}-${{ hashFiles('**/*.tf') }}
+    restore-keys: |
+      tf-plugins-${{ runner.os }}-
+
+# ensure clean working dir so backend changes take effect
+- name: Clean previous TF dir
+  run: rm -rf .terraform
+
+# reconfigure backend (picks up use_lockfile=true)
+- name: Init backend
+  run: |
+    mkdir -p ~/.terraform.d/plugin-cache
+    terraform init -input=false -reconfigure -upgrade
