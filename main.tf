@@ -205,7 +205,7 @@ terraform {
     bucket               = "p-terraform-state-prod-681833711197"
     key                  = "terraform.tfstate"
     region               = "us-east-2"
-    dynamodb_table       = "terraform-locks"
+    use_lockfile         = true
     encrypt              = true
     workspace_key_prefix = "env"
   }
