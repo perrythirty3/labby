@@ -4,8 +4,8 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "*.tf"
       - "**/*.tf"
+      - ".terraform.lock.hcl"
       - ".github/workflows/terraform-cd.yml"
   workflow_dispatch:
 
@@ -16,6 +16,7 @@ permissions:
 env:
   TF_WORKING_DIR: .
   TF_IN_AUTOMATION: true
+  TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
 
 concurrency:
   group: tf-${{ github.ref_name }}
@@ -26,7 +27,7 @@ jobs:
     name: terraform apply (prod)
     runs-on: ubuntu-latest
     environment:
-      name: prod   # must exist in GitHub → Settings → Environments
+      name: prod   # requires manual approval in GitHub Environments
     defaults:
       run:
         shell: bash
@@ -36,41 +37,47 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # cache ONLY the plugin cache (never ./.terraform)
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: tf-plugins-${{ runner.os }}-${{ hashFiles('**/*.tf', '.terraform.lock.hcl') }}
+          restore-keys: |
+            tf-plugins-${{ runner.os }}-
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
+          terraform_version: 1.9.5
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-2
+          aws-region: ${{ vars.AWS_REGION }}  # e.g., us-east-2
 
-      - name: Cache Terraform
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.terraform.d/plugin-cache
-            ./.terraform
-          key: tf-${{ runner.os }}-${{ hashFiles('**/*.tf') }}
-          restore-keys: |
-            tf-${{ runner.os }}-
+      - name: Who am I? (sanity)
+        run: aws sts get-caller-identity
+
+      # ensure backend changes (use_lockfile) are picked up
+      - name: Clean previous TF dir
+        run: rm -rf .terraform
 
       - name: Init backend
         run: |
-          mkdir -p ~/.terraform.d/plugin-cache
-          terraform init -input=false
+          mkdir -p "$TF_PLUGIN_CACHE_DIR"
+          terraform init -input=false -reconfigure -upgrade
 
       - name: Select/create workspace
-        run: |
-          terraform workspace select prod || terraform workspace new prod
+        run: terraform workspace select prod || terraform workspace new prod
 
       - name: Validate
-        run: terraform validate
+        run: terraform validate -no-color
 
       - name: Plan (for logs)
-        run: terraform plan -input=false -out=plan.out
+        run: terraform plan -input=false -no-color -out=plan.out
 
       - name: Apply
         run: terraform apply -input=false -auto-approve plan.out
@@ -79,13 +86,4 @@ jobs:
         if: always()
         run: terraform show -no-color
 
-      - name: Upload artifacts (debug)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tf-outputs
-          path: |
-            ./.terraform
-            ./terraform.tfstate*
-            ./plan.out
-          if-no-files-found: ignore
+      # (optional) tiny

@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.4.0"
+  required_version = ">= 1.6.0, < 2.0.0"
 
   required_providers {
     aws = {
@@ -8,14 +8,6 @@ terraform {
     }
   }
 
-  # --- OPTIONAL: enable this backend after you create a real bucket ---
-  # backend "s3" {
-  #   bucket       = "labby-tf-state-<REPLACE-WITH-UNIQUE-NAME>"  # e.g., labby-tf-state-pnguy-123
-  #   key          = "dev/terraform.tfstate"
-  #   region       = "us-east-2"
-  #   encrypt      = true
-  #   use_lockfile = true   # replaces old dynamodb_table locking
-  # }
 }
 
 
@@ -205,9 +197,59 @@ terraform {
     bucket               = "p-terraform-state-prod-681833711197"
     key                  = "terraform.tfstate"
     region               = "us-east-2"
-    dynamodb_table       = "terraform-locks"
     encrypt              = true
     workspace_key_prefix = "env"
+    use_lockfile         = true
   }
+}
 
+# ========== ECS TASK EXECUTION ROLE ==========
+# lets ECS pull from ECR, write logs, etc.
+resource "aws_iam_role" "ecs_task_execution" {
+  name = "LabbyEcsTaskExecutionRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = { Service = "ecs-tasks.amazonaws.com" },
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_managed" {
+  role       = aws_iam_role.ecs_task_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# ========== ECS TASK ROLE ==========
+# your app’s containers assume this at runtime (add app-specific perms later)
+resource "aws_iam_role" "ecs_task" {
+  name = "LabbyEcsTaskRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = { Service = "ecs-tasks.amazonaws.com" },
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+# ========== LAMBDA EXECUTION ROLE ==========
+resource "aws_iam_role" "lambda_exec" {
+  name = "LabbyLambdaRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = { Service = "lambda.amazonaws.com" },
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
