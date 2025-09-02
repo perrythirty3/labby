@@ -25,8 +25,7 @@ jobs:
   apply:
     name: terraform apply (prod)
     runs-on: ubuntu-latest
-    environment:
-      name: prod   # must exist in GitHub → Settings → Environments
+    environment: prod   # <-- must exist in Repo Settings → Environments
     defaults:
       run:
         shell: bash
@@ -45,11 +44,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
- chore/noop-deploy-ping
-          aws-region: ${{ vars.AWS_REGION }} 
-
-          aws-region: us-east-2
- main
+          aws-region: ${{ vars.AWS_REGION }}  # set this repo/env var to us-east-2
 
       - name: Cache Terraform
         uses: actions/cache@v4
@@ -67,8 +62,7 @@ jobs:
           terraform init -input=false
 
       - name: Select/create workspace
-        run: |
-          terraform workspace select prod || terraform workspace new prod
+        run: terraform workspace select prod || terraform workspace new prod
 
       - name: Validate
         run: terraform validate
@@ -93,36 +87,3 @@ jobs:
             ./terraform.tfstate*
             ./plan.out
           if-no-files-found: ignore
-chore/noop-deploy-ping
-
-# BEFORE (likely)
-# - name: Cache Terraform
-#   uses: actions/cache@v4
-#   with:
-#     path: |
-#       ~/.terraform.d/plugin-cache
-#       ./.terraform
-#     key: tf-${{ runner.os }}-${{ hashFiles('**/*.tf') }}
-#     restore-keys: |
-#       tf-${{ runner.os }}-
-
-# AFTER (cache plugins only)
-- name: Cache Terraform plugins
-  uses: actions/cache@v4
-  with:
-    path: ~/.terraform.d/plugin-cache
-    key: tf-plugins-${{ runner.os }}-${{ hashFiles('**/*.tf') }}
-    restore-keys: |
-      tf-plugins-${{ runner.os }}-
-
-# ensure clean working dir so backend changes take effect
-- name: Clean previous TF dir
-  run: rm -rf .terraform
-
-# reconfigure backend (picks up use_lockfile=true)
-- name: Init backend
-  run: |
-    mkdir -p ~/.terraform.d/plugin-cache
-    terraform init -input=false -reconfigure -upgrade
-
- main

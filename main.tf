@@ -197,6 +197,7 @@ terraform {
     bucket               = "p-terraform-state-prod-681833711197"
     key                  = "terraform.tfstate"
     region               = "us-east-2"
+    chore/noop-deploy-ping
     encrypt              = true
     workspace_key_prefix = "env"
     use_lockfile         = true        # <- add
@@ -254,4 +255,11 @@ resource "aws_iam_role" "lambda_exec" {
 resource "aws_iam_role_policy_attachment" "lambda_basic" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+=======
+    dynamodb_table       = "terraform-locks"
+    encrypt              = true
+    workspace_key_prefix = "env"
+  }
+
+  main
 }
