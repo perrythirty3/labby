@@ -197,6 +197,7 @@ terraform {
     bucket               = "p-terraform-state-prod-681833711197"
     key                  = "terraform.tfstate"
     region               = "us-east-2"
+    chore/noop-deploy-ping
     encrypt              = true
     workspace_key_prefix = "env"
     use_lockfile         = true        # <- add

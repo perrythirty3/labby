@@ -46,6 +46,10 @@ jobs:
           terraform_version: 1.9.5
           terraform_wrapper: false
 
+      - name: Ensure TF plugin cache dir exists
+        run: mkdir -p ~/.terraform.d/plugin-cache
+
+
       - name: Terraform fmt
         run: terraform fmt -check -diff
 
