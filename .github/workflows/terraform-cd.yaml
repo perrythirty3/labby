@@ -27,7 +27,11 @@ jobs:
     name: terraform apply (prod)
     runs-on: ubuntu-latest
     environment:
+
       name: prod  # requires approval in Environments
+
+      name: prod   # requires manual approval in GitHub Environments
+
     defaults:
       run:
         shell: bash
@@ -37,10 +41,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+
       - name: Ensure TF plugin cache dir exists
         run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
 
       # cache plugins ONLY (never cache ./.terraform)
+
+      # cache ONLY the plugin cache (never ./.terraform)
+
       - name: Cache Terraform plugins
         uses: actions/cache@v4
         with:
@@ -54,21 +62,37 @@ jobs:
         with:
           terraform_version: 1.9.5
           terraform_wrapper: false
+          terraform_version: 1.9.5
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Who am I?
         run: aws sts get-caller-identity
 
+
+          aws-region: ${{ vars.AWS_REGION }}  # e.g., us-east-2
+
+      - name: Who am I? (sanity)
+        run: aws sts get-caller-identity
+
+      # ensure backend changes (use_lockfile) are picked up
+
       - name: Clean previous TF dir
         run: rm -rf .terraform
 
       - name: Init backend
+
         run: terraform init -input=false -reconfigure -upgrade
+
+        run: |
+          mkdir -p "$TF_PLUGIN_CACHE_DIR"
+          terraform init -input=false -reconfigure -upgrade
+
 
       - name: Select/create workspace
         run: terraform workspace select prod || terraform workspace new prod
@@ -77,9 +101,13 @@ jobs:
         run: terraform validate -no-color
 
       - name: Plan (for logs)
+
         env:
           MY_IP: ${{ vars.MY_IP }}   # set this repo/environment var to your /32 (e.g., 1.2.3.4/32)
         run: terraform plan -input=false -no-color -out=plan.out -var "my_ip=${MY_IP}"
+
+        run: terraform plan -input=false -no-color -out=plan.out
+
 
       - name: Apply
         run: terraform apply -input=false -auto-approve plan.out
@@ -87,6 +115,7 @@ jobs:
       - name: Show state summary
         if: always()
         run: terraform show -no-color
+
 
       - name: Confirm remote state path (snippet)
         if: always()
@@ -99,3 +128,6 @@ jobs:
           name: tf-plan
           path: plan.out
           if-no-files-found: ignore
+
+      # (optional) tiny
+
