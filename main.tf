@@ -251,3 +251,81 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+
+# --- Simple public S3 website for a quick test ---
+
+# (quick unique suffix so the bucket name is globally unique)
+resource "random_id" "app" {
+  byte_length = 3
+}
+
+# 1) The bucket
+resource "aws_s3_bucket" "app_site" {
+  bucket        = "labby-app-site-${random_id.app.hex}"
+  force_destroy = true # ok for a lab; remove for prod
+  tags          = { Name = "labby-app-site" }
+}
+
+# 2) Ownership controls (needed if you ever use ACLs)
+resource "aws_s3_bucket_ownership_controls" "app_site" {
+  bucket = aws_s3_bucket.app_site.id
+  rule { object_ownership = "BucketOwnerPreferred" }
+}
+
+# 3) Public access block:
+#    We are deliberately turning OFF the “block” settings for this
+#    short-lived demo, because a public website needs a public policy.
+resource "aws_s3_bucket_public_access_block" "app_site" {
+  bucket                  = aws_s3_bucket.app_site.id
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+# 4) S3 static website configuration (index/error)
+resource "aws_s3_bucket_website_configuration" "app_site" {
+  bucket = aws_s3_bucket.app_site.id
+
+  index_document { suffix = "index.html" }
+  error_document { key = "index.html" }
+}
+
+# 5) Bucket policy that allows the world to GET objects (the website needs this)
+data "aws_iam_policy_document" "app_site_public" {
+  statement {
+    sid       = "PublicReadGetObject"
+    effect    = "Allow"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.app_site.arn}/*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "app_site_public" {
+  bucket = aws_s3_bucket.app_site.id
+  policy = data.aws_iam_policy_document.app_site_public.json
+}
+
+# 6) (Optional) Upload a tiny index page so you can see something
+resource "aws_s3_object" "index" {
+  bucket       = aws_s3_bucket.app_site.id
+  key          = "index.html"
+  content_type = "text/html"
+  content      = <<HTML
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>Labby site</title></head>
+  <body style="font-family: system-ui; margin:2rem;">
+    <h1>✅ Hello from Labby</h1>
+    <p>${formatdate("YYYY-MM-DD hh:mm:ss ZZZ", timestamp())}</p>
+  </body>
+</html>
+HTML
+}
+

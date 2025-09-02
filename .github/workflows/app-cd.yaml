@@ -1,0 +1,39 @@
+name: App CD (sync app/ to S3)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "app/**"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  APP_BUCKET: labby-demo-site-681833711197
+  AWS_REGION: us-east-2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS creds (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}  # same role you use for Terraform CD
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync app/ -> S3
+        run: |
+          aws s3 sync app/ s3://$APP_BUCKET/ \
+            --delete \
+            --exclude ".gitignore" \
+            --cache-control "public, max-age=60"
+
+      - name: Show website URL
+        run: echo "http://${APP_BUCKET}.s3-website-${AWS_REGION}.amazonaws.com"
