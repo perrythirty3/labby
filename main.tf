@@ -187,8 +187,6 @@ echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
 EOF
 }
 
-# chore/noop-deploy-ping
-
 
 # ---------------- TERRAFORM ----------------
 
@@ -202,7 +200,6 @@ terraform {
     use_lockfile         = true
   }
 }
-
 
 # ========== ECS TASK EXECUTION ROLE ==========
 # lets ECS pull from ECR, write logs, etc.

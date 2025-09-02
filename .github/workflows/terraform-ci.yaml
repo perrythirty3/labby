@@ -42,7 +42,7 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
+        with:chore
           terraform_version: 1.9.5
           terraform_wrapper: false
 
