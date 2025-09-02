@@ -279,10 +279,10 @@ resource "aws_s3_bucket_public_access_block" "app_site" {
 # Bucket policy: allow the world to GET objects (required for a public website)
 data "aws_iam_policy_document" "app_site_public" {
   statement {
-    sid        = "PublicReadGetObject"
-    effect     = "Allow"
-    actions    = ["s3:GetObject"]
-    resources  = ["${aws_s3_bucket.app_site.arn}/*"]
+    sid       = "PublicReadGetObject"
+    effect    = "Allow"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.app_site.arn}/*"]
 
     principals {
       type        = "AWS"
