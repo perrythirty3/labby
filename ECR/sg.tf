@@ -7,7 +7,7 @@ resource "aws_security_group" "app" {
     from_port   = var.app_container_port
     to_port     = var.app_container_port
     protocol    = "tcp"
-    cidr_blocks = [var.my_ip]  # <-- uses TF_VAR_my_ip from CI, or set in tfvars locally
+    cidr_blocks = [var.my_ip] # <-- uses TF_VAR_my_ip from CI, or set in tfvars locally
   }
 
   egress {

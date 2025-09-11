@@ -12,4 +12,3 @@ resource "aws_ecs_service" "app" {
     security_groups = [aws_security_group.app.id]
   }
 }
-    
