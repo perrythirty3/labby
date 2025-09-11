@@ -6,7 +6,7 @@ on:
     paths:
       - "**/*.tf"
       - ".terraform.lock.hcl"
-      - ".github/workflows/terraform-cd.yaml"   # <-- make sure your file is .yaml
+      - ".github/workflows/terraform-cd.yaml"   
   workflow_dispatch:
 
 permissions:
@@ -59,7 +59,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: us-east-1
 
       - name: Who am I?
         run: aws sts get-caller-identity
@@ -78,8 +78,8 @@ jobs:
 
       - name: Plan (for logs)
         env:
-          MY_IP: ${{ vars.MY_IP }}   # e.g. 203.0.113.42/32
-        run: terraform plan -input=false -no-color -out=plan.out -var "my_ip=${MY_IP}"
+          MY_IP: ${{ secrets.MY_IP }}
+        run: terraform plan -input=false -no-color -out=plan.out -var "my_ip=${{ env.MY_IP != '' && env.MY_IP || '0.0.0.0/32' }}"
 
       - name: Apply
         run: terraform apply -input=false -auto-approve plan.out
