@@ -1,13 +1,4 @@
-terraform {
-  required_version = ">= 1.6.0, < 2.0.0"
 
-
-
-# ---------------- Variables ----------------
-variable "region" {
-  type    = string
-  default = "us-east-2"
-}
 
 # e.g. "203.0.113.42/32"
 variable "my_ip" {
