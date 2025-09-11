@@ -27,7 +27,7 @@ variable "aws_region" {
   default = null # lets the AWS provider fall back to AWS_REGION env if unset
 }
 
-{
+terraform {
   backend "s3" {
     bucket               = "p-terraform-state-prod-681833711197"
     key                  = "terraform.tfstate"
