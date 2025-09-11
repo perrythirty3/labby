@@ -1,13 +1,3 @@
-# e.g. "203.0.113.42/32"
-variable "my_ip" {
-  type = string
-}
-
-variable "key_name" {
-  type    = string
-  default = "labby-key"
-}
-
 # ---------------- AMI (Amazon Linux 2023 x86_64) ----------------
 data "aws_ami" "al2023" {
   most_recent = true
@@ -45,7 +35,7 @@ resource "aws_internet_gateway" "igw" {
 resource "aws_subnet" "public_a" {
   vpc_id            = aws_vpc.labby_tf.id
   cidr_block        = "10.10.1.0/24"
-  availability_zone = "${var.region}a"
+  availability_zone = "${var.aws_region}a"
 
   #tfsec:ignore:aws-ec2-no-public-ip-subnet - this is intentionally a public subnet for the demo
   map_public_ip_on_launch = true
@@ -159,20 +149,6 @@ fi
 systemctl enable --now nginx
 echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
 EOF
-}
-
-
-# ---------------- TERRAFORM ----------------
-
-terraform {
-  backend "s3" {
-    bucket               = "p-terraform-state-prod-681833711197"
-    key                  = "terraform.tfstate"
-    region               = "us-east-2"
-    encrypt              = true
-    workspace_key_prefix = "env"
-    use_lockfile         = true
-  }
 }
 
 # ========== ECS TASK EXECUTION ROLE ==========
@@ -292,4 +268,8 @@ HTML
 
 # (optional) outputs
 output "app_site_bucket" { value = aws_s3_bucket.app_site.bucket }
-output "app_site_website_url" { value = "http://${aws_s3_bucket.app_site.bucket}.s3-website-${var.region}.amazonaws.com" }
+output "app_site_website_url" {
+  value = aws_s3_bucket_website_configuration.app_site.website_endpoint
+}
+
+
