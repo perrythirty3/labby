@@ -96,3 +96,14 @@ jobs:
         with:
           header: terraform-plan
           path: plan.txt
+
+# --- TFLint ---
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v5
+  # with: { tflint_version: v0.53.0 } # optional pin; defaults to latest
+
+      - name: Init TFLint plugins
+        run: tflint --init
+
+      - name: Run TFLint
+        run: tflint --no-color
