@@ -1,78 +1,98 @@
 name: Terraform CI
 
 on:
+  workflow_dispatch:
   pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.tf"
+      - ".terraform.lock.hcl"
+      - ".github/workflows/terraform-ci.yaml"
 
 permissions:
   contents: read
-  id-token: write   # for OIDC if we assume a role
-
-concurrency:
-  group: tf-ci-${{ github.ref }}
-  cancel-in-progress: false
+  pull-requests: write
 
 jobs:
-  tf-ci:
+  terraform:
+    name: terraform
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./
     env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      ROLE_ARN: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-      MY_IP: ${{ secrets.MY_IP }}                   # may be empty
       TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Create plugin cache dir
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure TF plugin cache dir exists
         run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
 
-      - name: Cache Terraform providers
+      # cache plugins ONLY (never cache ./.terraform)
+      - name: Cache Terraform plugins
         uses: actions/cache@v4
         with:
-          path: ~/.terraform.d/plugin-cache
-          key: ${{ runner.os }}-tf-plugin-${{ hashFiles('**/.terraform.lock.hcl') }}
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: tf-plugins-${{ runner.os }}-${{ hashFiles('**/*.tf', '.terraform.lock.hcl') }}
           restore-keys: |
-            ${{ runner.os }}-tf-plugin-
+            tf-plugins-${{ runner.os }}-
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.6
+          terraform_version: 1.9.5
+          terraform_wrapper: false
 
-      # Default MY_IP here (removes invalid expression warning)
-      - name: Set TF var defaults
-        shell: bash
-        run: |
-          echo "TF_VAR_my_ip=${MY_IP:-0.0.0.0/32}" >> "$GITHUB_ENV"
+      - name: Terraform fmt
+        run: terraform fmt -check -diff
 
-      # Only assume role when PR originates from same repo (no secrets in forks)
-      - name: Configure AWS (OIDC)
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ env.ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+      # Offline init so CI never touches the real backend
+      - name: Terraform init (no backend)
+        run: terraform init -backend=false -input=false
 
-      - name: Who am I?
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        run: aws sts get-caller-identity
-
-      - name: Clean previous TF dir
-        run: rm -rf .terraform
-
-      - name: Init backend
-        run: terraform init -input=false -reconfigure -upgrade
-
-      - name: Select/create workspace
-        run: terraform workspace select prod || terraform workspace new prod
-
-      - name: Format check
-        run: terraform fmt -check -recursive
-
-      - name: Validate
+      - name: Terraform validate
         run: terraform validate -no-color
 
-      - name: Plan
-        # For forked PRs, we still plan but it’s against the local state (no secrets used).
-        run: terraform plan -input=false -no-color -out=plan.out
+      - name: Install TFLint
+        run: |
+          curl -sL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
+
+      - name: TFLint
+        run: tflint --no-color
+
+      - name: Install tfsec
+        run: |
+          curl -L https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64 -o /usr/local/bin/tfsec
+          chmod +x /usr/local/bin/tfsec
+
+      - name: tfsec (security scan)
+        run: tfsec --minimum-severity HIGH
+
+      - name: Terraform plan (offline)
+        env:
+          MY_IP_INPUT: ${{ vars.MY_IP }}   # set repo var to your /32 (e.g., 1.2.3.4/32)
+        run: |
+          MYIP="${MY_IP_INPUT:-0.0.0.0/32}"
+          terraform plan -no-color -input=false -refresh=false -lock=false -out=tfplan -var "my_ip=$MYIP" || true
+
+      - name: Show plan to text
+        run: |
+          if [ -f tfplan ]; then terraform show -no-color tfplan > plan.txt; else echo "No plan created." > plan.txt; fi
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: plan.txt
+
+      - name: Comment plan on PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: terraform-plan
+          path: plan.txt

@@ -2,59 +2,67 @@ name: Terraform CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
+    paths:
+      - "**/*.tf"
+      - ".terraform.lock.hcl"
+      - ".github/workflows/terraform-cd.yaml"   
+  workflow_dispatch:
 
 permissions:
-  contents: read
   id-token: write
+  contents: read
+
+env:
+  TF_WORKING_DIR: .
+  TF_IN_AUTOMATION: true
+  TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
 
 concurrency:
-  group: tf-cd-main
+  group: tf-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  cd:
+  apply:
+    name: terraform apply (prod)
     runs-on: ubuntu-latest
-    environment: prod         # optional: add required reviewers in repo Settings → Environments → prod
-    env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      ROLE_ARN: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-      MY_IP: ${{ secrets.MY_IP }}     # may be empty
-      TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    environment:
+      name: prod   # requires approval in Environments
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
-      - name: Create plugin cache dir
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure TF plugin cache dir exists
         run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
 
-      - name: Cache Terraform providers
+      # cache ONLY the plugin cache (never ./.terraform)
+      - name: Cache Terraform plugins
         uses: actions/cache@v4
         with:
-          path: ~/.terraform.d/plugin-cache
-          key: ${{ runner.os }}-tf-plugin-${{ hashFiles('**/.terraform.lock.hcl') }}
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: tf-plugins-${{ runner.os }}-${{ hashFiles('**/*.tf', '.terraform.lock.hcl') }}
           restore-keys: |
-            ${{ runner.os }}-tf-plugin-
+            tf-plugins-${{ runner.os }}-
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.6
+          terraform_version: 1.13.1
+          terraform_wrapper: false
 
-      - name: Configure AWS (OIDC)
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
 
       - name: Who am I?
         run: aws sts get-caller-identity
-
-      - name: Set TF var defaults
-        shell: bash
-        run: |
-          echo "TF_VAR_my_ip=${MY_IP:-0.0.0.0/32}" >> "$GITHUB_ENV"
 
       - name: Clean previous TF dir
         run: rm -rf .terraform
@@ -68,8 +76,29 @@ jobs:
       - name: Validate
         run: terraform validate -no-color
 
-      - name: Plan
-        run: terraform plan -input=false -no-color -out=plan.out
+      - name: Plan (for logs)
+        env:
+          MY_IP: ${{ secrets.MY_IP }}
+        run: terraform plan -input=false -no-color -out=plan.out -var "my_ip=${{ env.MY_IP != '' && env.MY_IP || '0.0.0.0/32' }}"
 
       - name: Apply
         run: terraform apply -input=false -auto-approve plan.out
+
+      - name: Show state summary
+        if: always()
+        run: terraform show -no-color
+
+      - name: Confirm remote state path (snippet)
+        if: always()
+        run: terraform state pull | head -c 200 || true
+
+      - name: Upload plan (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tf-plan
+          path: plan.out
+          if-no-files-found: ignore
+
+      - name: Terraform version
+        run: terraform version
