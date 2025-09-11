@@ -1,3 +1,5 @@
+variable "my_ip" { type = string } # ensure this exists in variables.tf
+
 resource "aws_security_group" "app" {
   name        = "${var.ecs_service_name}-sg"
   description = "Ingress to app"
@@ -7,7 +9,7 @@ resource "aws_security_group" "app" {
     from_port   = var.app_container_port
     to_port     = var.app_container_port
     protocol    = "tcp"
-    cidr_blocks = [var.my_ip] # <-- uses TF_VAR_my_ip from CI, or set in tfvars locally
+    cidr_blocks = [var.my_ip]   # CI sets TF_VAR_my_ip (falls back to 0.0.0.0/32)
   }
 
   egress {
