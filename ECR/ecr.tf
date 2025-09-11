@@ -1,3 +1,8 @@
+variable "ecr_repo_name" {
+  description = "Name of the ECR repository"
+  type        = string
+}
+
 resource "aws_ecr_repository" "app" {
 name = var.ecr_repo_name
 image_tag_mutability = "MUTABLE"
