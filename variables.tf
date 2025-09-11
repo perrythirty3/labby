@@ -19,5 +19,5 @@ variable "public_subnet_ids" { type = list(string) }
 
 variable "aws_region" {
   type    = string
-  default = null   # lets the AWS provider fall back to AWS_REGION env if unset
+  default = null # lets the AWS provider fall back to AWS_REGION env if unset
 }

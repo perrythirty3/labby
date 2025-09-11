@@ -1,5 +1,3 @@
-
-
 # e.g. "203.0.113.42/32"
 variable "my_ip" {
   type = string
