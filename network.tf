@@ -24,13 +24,13 @@ resource "aws_security_group" "app" {
   vpc_id      = data.aws_vpc.default.id
 
   # Let the ALB reach the tasks on the app port
-ingress {
-  description     = "From ALB only"
-  from_port       = var.app_container_port
-  to_port         = var.app_container_port
-  protocol        = "tcp"
-  security_groups = [aws_security_group.lb.id]
-}
+  ingress {
+    description     = "From ALB only"
+    from_port       = var.app_container_port
+    to_port         = var.app_container_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.lb.id]
+  }
 
 
   egress {
