@@ -1,21 +1,6 @@
 # Use the same VPC & public subnets your service is using now
 # (You already have these data sources elsewhere; include if missing.)
-data "aws_vpc" "default" {
-  default = true
-}
 
-data "aws_subnets" "public" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-  filter {
-    name   = "tag:aws-cdk:subnet-name"
-    values = ["Public*", "public*"]
-  }
-  # NOTE: if that filter returns nothing in your account, drop the second filter
-  # and rely on how you built data.aws_subnets.public before.
-}
 
 # Security group for the ALB (internet -> ALB :80)
 resource "aws_security_group" "lb" {
