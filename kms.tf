@@ -8,3 +8,4 @@ resource "aws_kms_alias" "s3_app" {
   name          = "alias/labby-s3-app"
   target_key_id = aws_kms_key.s3_app.id
 }
+

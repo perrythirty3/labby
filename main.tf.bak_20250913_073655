@@ -21,18 +21,51 @@ data "aws_ami" "al2023" {
 
 
 
+resource "aws_subnet" "public_a" {
+  vpc_id            = aws_vpc.labby_tf.id
+  cidr_block        = "10.10.1.0/24"
+  availability_zone = "${var.aws_region}a"
 
+  #tfsec:ignore:aws-ec2-no-public-ip-subnet - this is intentionally a public subnet for the demo
+  map_public_ip_on_launch = true
+
+  tags = { Name = "labby-tf-public-a" }
+}
+
+
+resource "aws_route_table_association" "public_a" {
+  subnet_id      = aws_subnet.public_a.id
+  route_table_id = aws_route_table.public.id
+}
 
 # ---------------- Security Groups ----------------
 
 # SSH from your /32
+resource "aws_security_group" "ssh" {
+  name        = "labby-tf-ssh"
+  description = "SSH from my IP only"
+  vpc_id      = aws_vpc.labby_tf.id
+
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip]
+  }
+
+  # No outbound from the SSH SG; web SG handles egress.
+  egress = []
+
+  tags = { Name = "labby-tf-ssh" }
+}
 
 
 # Public HTTP (demo)
 resource "aws_security_group" "web" {
   name        = "labby-tf-web"
   description = "Public HTTP"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = aws_vpc.labby_tf.id
 
   #tfsec:ignore:aws-ec2-no-public-ingress-sgr
   # reason: demo public page; will move behind an ALB later
@@ -57,6 +90,78 @@ resource "aws_security_group" "web" {
 }
 
 
+# ---------------- EC2 ----------------
+resource "aws_instance" "dev" {
+  ami           = data.aws_ami.al2023.id
+  instance_type = "t3.micro"
+  subnet_id     = aws_subnet.public_a.id
+
+  vpc_security_group_ids = [
+    aws_security_group.ssh.id,
+    aws_security_group.web.id
+  ]
+
+  key_name                    = var.key_name
+  associate_public_ip_address = true
+
+  # Require IMDSv2
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  # Encrypt root volume (uses account default KMS)
+  root_block_device {
+    encrypted = true
+  }
+
+  # Start nginx and serve a page
+  user_data = <<EOF
+#!/bin/bash
+set -euo pipefail
+if command -v dnf >/dev/null 2>&1; then
+  dnf -y update
+  dnf -y install nginx
+else
+  yum -y update || true
+  yum -y install nginx
+fi
+systemctl enable --now nginx
+echo "hello from labby ✅ $(date)" > /usr/share/nginx/html/index.html
+EOF
+}
+
+# ========== ECS TASK EXECUTION ROLE ==========
+# lets ECS pull from ECR, write logs, etc.
+resource "aws_iam_role" "ecs_task_execution" {
+  name = "LabbyEcsTaskExecutionRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = { Service = "ecs-tasks.amazonaws.com" },
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_managed" {
+  role       = aws_iam_role.ecs_task_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# ========== ECS TASK ROLE ==========
+# your app’s containers assume this at runtime (add app-specific perms later)
+resource "aws_iam_role" "ecs_task" {
+  name = "LabbyEcsTaskRole"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = { Service = "ecs-tasks.amazonaws.com" },
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
 
 # ========== LAMBDA EXECUTION ROLE ==========
 resource "aws_iam_role" "lambda_exec" {
@@ -88,6 +193,10 @@ resource "aws_s3_bucket" "app_site" {
   tags          = { Name = "labby-app-site" }
 }
 
+resource "aws_s3_bucket_ownership_controls" "app_site" {
+  bucket = aws_s3_bucket.app_site.id
+  rule { object_ownership = "BucketOwnerPreferred" }
+}
 
 resource "aws_s3_bucket_public_access_block" "app_site" {
   bucket                  = aws_s3_bucket.app_site.id
@@ -196,12 +305,4 @@ resource "aws_s3_bucket_policy" "app_site_allow_cf" {
     }]
   })
 }
-
-
-
-
-
-
-
-
 

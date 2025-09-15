@@ -9,3 +9,4 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "app_site" {
     bucket_key_enabled = true
   }
 }
+
