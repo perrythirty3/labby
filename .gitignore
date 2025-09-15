@@ -11,3 +11,4 @@ override.tf.json
 tfplan
 # Keep the lockfile committed:
 !.terraform.lock.hcl
+*.bak
