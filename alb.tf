@@ -9,12 +9,13 @@ resource "aws_security_group" "lb" {
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "HTTP"
+    description = "HTTP from allowed CIDR"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.http_cidr] # <— use the variable
   }
+
   egress {
     from_port   = 0
     to_port     = 0
