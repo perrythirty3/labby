@@ -1,24 +1,3 @@
-# ---------------- AMI (Amazon Linux 2023 x86_64) ----------------
-data "aws_ami" "al2023" {
-  most_recent = true
-  owners      = ["137112412989"] # Amazon
-
-  filter {
-    name   = "name"
-    values = ["al2023-ami-*-x86_64"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-}
-
 
 
 
@@ -101,19 +80,6 @@ resource "aws_s3_bucket_website_configuration" "app_site" {
   bucket = aws_s3_bucket.app_site.id
   index_document { suffix = "index.html" }
   error_document { key = "index.html" }
-}
-
-data "aws_iam_policy_document" "app_site_public" {
-  statement {
-    sid       = "PublicReadGetObject"
-    effect    = "Allow"
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.app_site.arn}/*"]
-    principals {
-      type        = "AWS"
-      identifiers = ["*"]
-    }
-  }
 }
 
 

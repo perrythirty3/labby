@@ -7,7 +7,7 @@ locals {
   app_container_definition = [
     {
       name      = "app",
-      image     = "public.ecr.aws/nginx/nginx:stable",
+      image     = local.app_image,
       essential = true,
       portMappings = [
         { containerPort = var.app_container_port, protocol = "tcp" }
@@ -34,4 +34,8 @@ resource "aws_ecs_task_definition" "app" {
   task_role_arn            = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode(local.app_container_definition)
+}
+
+locals {
+  app_image = var.ecr_repo_name != "" ? "${var.ecr_repo_name}:${var.image_tag}" : "public.ecr.aws/docker/library/nginx:stable"
 }
