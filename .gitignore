@@ -1,14 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.env
+.venv
+# Node
+node_modules/
+# Docker
+*.tar
 # Terraform
-.terraform/
 *.tfstate
 *.tfstate.*
-crash.*.log
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
-# Plans & local files
-tfplan
-# Keep the lockfile committed:
-!.terraform.lock.hcl
-*.bak
+.crash
+.terraform/
+.terraform.lock.hcl
+# Misc
+.DS_Store
+.vscode/

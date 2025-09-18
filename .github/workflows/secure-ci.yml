@@ -1,0 +1,76 @@
+name: secure-ci
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  iac_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkov (Terraform)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: iac
+          framework: terraform
+          quiet: true
+          soft_fail: false
+          output_format: github_failed_only
+          severity: HIGH
+
+  build_and_scan:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build image
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/web:${{ github.sha }} .      - name: Configure AWS creds via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/GhActions-ReadSecrets
+          aws-region: us-east-2
+      - name: Get secret (optional)
+        id: sm
+        run: |
+          val=$(aws secretsmanager get-secret-value --_secret-id secure-ci/api_key --query SecretString --output text || echo "{}")
+          echo "api_key=$(echo "$val" | jq -r .api_key)" >> $GITHUB_OUTPUT      - name: Trivy FS scan (deps)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+      - name: Trivy Image scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ghcr.io/${{ github.repository }}/web:${{ github.sha }}
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "HIGH,CRITICAL"
+          exit-code: "1"
+      - name: Login GHCR
+        if: ${{ success() }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push image (tag = commit SHA)
+        if: ${{ success() }}
+        run: docker push ghcr.io/${{ github.repository }}/web:${{ github.sha }}
+      - name: Also tag as "web"
+        if: ${{ success() }}
+        run: |
+          docker tag ghcr.io/${{ github.repository }}/web:${{ github.sha }} ghcr.io/${{ github.repository }}/web:web
+          docker push ghcr.io/${{ github.repository }}/web:web

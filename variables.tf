@@ -16,3 +16,7 @@ variable "http_cidr" {
 }
 
 
+variable "acm_certificate_arn" {
+  description = "ACM cert ARN for the ALB (must be in the same region as the ALB)"
+  type        = string
+}
